@@ -1,21 +1,31 @@
 from DecisionTree.ID3 import ID3
 
-attributes = [
-    ["vhigh", "high", "med", "low"],
-    ["vhigh", "high", "med", "low"],
-    ["2", "3", "4", "5more"],
-    ["2", "4", "more"],
-    ["small", "med", "big"],
-    ["low", "med", "high"]
-]
+attributes = {
+    "buying": ["vhigh", "high", "med", "low"],
+    "maint": ["vhigh", "high", "med", "low"],
+    "doors": ["2", "3", "4", "5more"],
+    "persons": ["2", "4", "more"],
+    "lug_boot": ["small", "med", "big"],
+    "safety": ["low", "med", "high"]
+}
+
+attr_col_map = {
+    "buying": 0,
+    "maint": 1,
+    "doors": 2,
+    "persons": 3,
+    "lug_boot": 4,
+    "safety": 5,
+}
 
 labels = ["unacc", "acc", "good", "vgood"]
 
 train_file = "data/hw1/car/train.csv"
 
+
 def __main__(): 
-    print("hi test")
-    tree = ID3(train_file, attributes, labels)
-    print(tree)
+    tree = ID3(train_file, attributes, attr_col_map, labels)
+    print("decision tree")
+    print(str(tree))
 
 __main__()
