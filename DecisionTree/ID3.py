@@ -17,24 +17,29 @@ import ProcessData.Attribute as Attribute
 # 
 def ID3(S, attr_dict, attr_col_map, maximum_depth=6, IG_algotithm="entropy"):    
     num_columns = len(S[0])
-    cfg = config(ID3_debug=True, column_count=num_columns, maximum_depth=maximum_depth, IG_algotithm=IG_algotithm, attr_col_map=attr_col_map, unchanged_S=S)
+    cfg = config(ID3_debug=False, column_count=num_columns, maximum_depth=maximum_depth, IG_algotithm=IG_algotithm, attr_col_map=attr_col_map, unchanged_S=S)
 
     return _ID3(cfg, S, attr_dict, 0)
 
 
 
 def _ID3(cfg: config, S, attr_dict, depth):
-    cfg.get_debug() and print("current size of attribute_map", len(attr_dict))
+    cfg.get_debug() and print("!!!!current size of attribute_map", len(attr_dict))
+    cfg.get_debug() and print("!!!!current size of S", len(S))
     S_labels = S[:, cfg.get_label_column()]
-    # base case
+    # base case # 1
     if np.all(S_labels == S_labels[0]):
-        cfg.get_debug() and print("find all labels the same:", S_labels[0])
-        if len(attr_dict) == 0:
+        cfg.get_debug() and print("!!!! BASE CASE # 1: find all labels the same:", S_labels[0])
+        label = S_labels[0]
+        if len(attr_dict) == 0: # no more attributes to split
             label = util.findMostCommonLabel(cfg.get_unchanged_S(), cfg)
             return node(attribute=None, S=S, label=label, branch=None) # leaf_node
-        else:
-            label = S_labels[0]
-            return node(attribute=None, S=S, label=label, branch=None) # leaf_node
+        return node(attribute=None, S=S, label=label, branch=None) # leaf_node
+    # base case # 2
+    if len(attr_dict) == 0: # no more attributes to split
+        cfg.get_debug() and print("!!!! BASE CASE # 2: no more attributes to split")
+        label = util.findMostCommonLabel(cfg.get_unchanged_S(), cfg)
+        return node(attribute=None, S=S, label=label, branch=None) # leaf_node
 
     # initialize root node
     root_node = node(attribute=None, S=S, label=None, branch={})
@@ -69,7 +74,7 @@ def _ID3(cfg: config, S, attr_dict, depth):
     return root_node
 
 
-def traverse(root_node: node, dataset, attr_col_map):
+def traverse(root_node: node, dataset, attr_col_map, attr_map):
     correct = 0
     incorrect = 0
     total = len(dataset)
@@ -77,13 +82,13 @@ def traverse(root_node: node, dataset, attr_col_map):
     for data in dataset:
         attr = data[:num_columns-1]
         label = data[num_columns-1:num_columns]
-        if _traverse(root_node, attr, label, attr_col_map):
+        if _traverse(root_node, attr, label, attr_col_map, attr_map):
             correct += 1
         else:
             incorrect += 1
     return correct/total, incorrect/total
 
-def _traverse(nd: node, attr, label, attr_col_map):
+def _traverse(nd: node, attr, label, attr_col_map, attr_map):
     if nd.label != None:
         if nd.label != label: 
             return False
@@ -91,8 +96,26 @@ def _traverse(nd: node, attr, label, attr_col_map):
             return True
     else:
         attr_idx = attr_col_map[nd.attribute]
-        attr_value = attr[attr_idx]
-        return _traverse(nd.branch[attr_value], attr, label, attr_col_map)
+        attr_obj = attr_map[nd.attribute]
+
+        test_attr_val = attr[attr_idx]
+
+        if attr_obj.get_type() == "numeric":
+            converted_attr_val = None
+            if float(test_attr_val) <= attr_obj.get_median():
+                converted_attr_val = attr_obj.get_values()[0]
+            else:
+                converted_attr_val = attr_obj.get_values()[1]
+            return _traverse(nd.branch[converted_attr_val], attr, label, attr_col_map, attr_map)
+        elif attr_obj.get_type() == "binary":
+            converted_attr_val = None
+            if test_attr_val == "Yes":
+                converted_attr_val = True
+            else:
+                converted_attr_val = False
+            return _traverse(nd.branch[converted_attr_val], attr, label, attr_col_map, attr_map)
+        else:
+            return _traverse(nd.branch[test_attr_val], attr, label, attr_col_map, attr_map)
 
     
 

@@ -5,7 +5,7 @@ import DecisionTree.Config as config
 import DecisionTree.util as util
 
 
-IG_debug = True
+IG_debug = False
 
 """
 counts: np array of occurance of a label in S, it is size of number of labels. 

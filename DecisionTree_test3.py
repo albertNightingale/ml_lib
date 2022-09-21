@@ -7,6 +7,7 @@ from DecisionTree.ID3 import traverse
 from ProcessData.Attribute import Attribute
 from ProcessData.AttributeNormalizer import convertNumericToBinary
 from ProcessData.AttributeNormalizer import normalizeBinary
+from ProcessData.AttributeNormalizer import normalizeUnknownAttributeValue
 
 attributes = {
     "age": Attribute("age", "numeric", None),
@@ -70,8 +71,9 @@ def process(file):
 def normalizeData(data, attr_col_map, attributes):
     attributes1, data1 = normalizeBinary(data, attr_col_map, attributes)
     attributes2, data2 = convertNumericToBinary(data1, attr_col_map, attributes1)
+    data3 = normalizeUnknownAttributeValue(data2, attr_col_map, attributes2)
 
-    return attributes2, data2
+    return attributes2, data3
 
 def main(): 
     unprocessed_train_data = copy.deepcopy(process(train_file))
