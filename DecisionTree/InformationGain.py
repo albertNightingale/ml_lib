@@ -1,16 +1,20 @@
 import numpy as np
 import math
 
+import DecisionTree.Config as config
 import DecisionTree.util as util
 
 
-IG_debug = False
+IG_debug = True
 
 """
 counts: np array of occurance of a label in S, it is size of number of labels. 
 total: size of S
 """
 def entropy(counts, total):
+    if len(counts) == 0 or total == 0:
+        return 0
+
     ratios = np.divide(counts, total)
     e = 0
     for ratio in ratios:
@@ -18,6 +22,9 @@ def entropy(counts, total):
     return -e
 
 def gini_index(counts, total):
+    if len(counts) == 0 or total == 0:
+        return 0
+
     ratios = np.divide(counts, total)
     power = np.power(ratios, 2)
     return 1 - np.sum(power)
@@ -32,42 +39,45 @@ def majority_error(counts, total):
 given S and attributes map
 returns name in the attribute with the best IG
 '''
-def IG(S, remaining_attributes, attr_col_mapping, IG_algotithm):
+def IG(S, remaining_attributes, attr_col_mapping, cfg: config):
     attribute_len = len(attr_col_mapping)
     IG_method = entropy
-    if IG_algotithm is "gini_index":
+    if cfg.get_IG_algotithm() == "gini_index":
         IG_method = gini_index
-    elif IG_algotithm is "majority_error":
+    elif cfg.get_IG_algotithm() == "majority_error":
         IG_method = majority_error
     else: 
         IG_method = entropy
-
+    
     # entropy of S
     S_size = len(S)
-    _labels, counts = util.getValueAndFrequency(S, 6)
+    _labels, counts = util.getValueAndFrequency(S, cfg.get_label_column())
 
-    H_S = IG_method(counts, S_size)
+    _main_result = IG_method(counts, S_size)
 
-    # IG of columns
+    # intialize IG of all available attributes
     all_columns_IG = {}
     for attribute_name in remaining_attributes:
-        all_columns_IG[attribute_name] = H_S
+        all_columns_IG[attribute_name] = _main_result
 
     # calculating IG of each attributes in remaining_attributes
     for attribute_name in remaining_attributes:
-        attribute_label = util.getColumnAndLabel(S, attr_col_mapping[attribute_name])  # attribute_label is certain attribute and label columns from S
-        for attribute_value in remaining_attributes[attribute_name]:
-            data_with_attribute_value = attribute_label[np.where(attribute_label[:,0]==attribute_value)[0]] 
-            _attributes, counts = util.getValueAndFrequency(data_with_attribute_value, 1)
-            _method = IG_method(counts, len(data_with_attribute_value))
-            # subtract that attribute value entropy
-            all_columns_IG[attribute_name] -= len(data_with_attribute_value)/S_size * _method
+        attribute_label = util.getColumnAndLabel(S, attr_col_mapping[attribute_name], cfg)  # attribute_label is certain attribute and label columns from S
+        attribute = remaining_attributes[attribute_name]
+        
+        for attribute_value in attribute.get_values():
+            S_v = attribute_label[attribute_label[:,0]==attribute_value] 
+            _labels, _counts = util.getValueAndFrequency(S_v, 1)
+            _result = IG_method(counts, len(S_v))
+                
+            # subtract the result from _main_result
+            all_columns_IG[attribute_name] -= len(S_v)/S_size * _result
 
             IG_debug and print("attribute value:", attribute_value)
             IG_debug and print("values mapping")
-            IG_debug and print("values", _attributes)
-            IG_debug and print("counts", counts)
-            IG_debug and print("entropy for \'" + str(attribute_value) + "\' is ", _method) 
+            IG_debug and print("values", _labels)
+            IG_debug and print("counts", _counts)
+            IG_debug and print("entropy for \'" + str(attribute_value) + "\' is ", _result) 
             IG_debug and print()
 
     IG_debug and print("IG of all columns:", all_columns_IG)

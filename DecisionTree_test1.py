@@ -1,8 +1,6 @@
 import numpy as np
-
 from DecisionTree.ID3 import ID3
 from DecisionTree.ID3 import traverse
-from DecisionTree.Config import config
 
 attributes = {
     "buying": ["vhigh", "high", "med", "low"],
@@ -41,7 +39,7 @@ def process(file):
         S[i] = data[i].strip().split(',')
     return S
 
-def __main__(): 
+def main(): 
     data = process(train_file)
     test_data = process(test_file)
 
@@ -56,7 +54,6 @@ def __main__():
             tree = ID3(data, attributes, attr_col_map, maximum_depth=depth, IG_algotithm=method)
             correct_ratio, incorrect_ratio = traverse(tree, data, attr_col_map)
             print("------| correct_ratio:", correct_ratio)
-            print("------| incorrect_ratio:", incorrect_ratio)
     
     print("testing with the test data")
     for depth in depth2test:
@@ -66,6 +63,6 @@ def __main__():
             tree = ID3(data, attributes, attr_col_map, maximum_depth=depth, IG_algotithm=method)
             correct_ratio, incorrect_ratio = traverse(tree, test_data, attr_col_map)
             print("------| correct_ratio:", correct_ratio)
-            print("------| incorrect_ratio:", incorrect_ratio)
 
-__main__()
+if __name__ == "__main__":
+    main()

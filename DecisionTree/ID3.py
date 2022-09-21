@@ -8,25 +8,29 @@ from DecisionTree.InformationGain import IG
 import DecisionTree.util as util
 from DecisionTree.Config import config
 
+# import attributes
+import ProcessData.Attribute as Attribute
 
-# attributes_map is dictionary.
+# attr_dict is a dictionary of attributes.
 # ex:
 #       name: [vhigh, high, med, low]
-def ID3(S, attributes_map, attr_col_map, maximum_depth=6, IG_algotithm="entropy"):    
-    cfg = config(ID3_debug=False, maximum_depth=maximum_depth, IG_algotithm=IG_algotithm, attr_col_map=attr_col_map, unchanged_S=S)
+# 
+def ID3(S, attr_dict, attr_col_map, maximum_depth=6, IG_algotithm="entropy"):    
+    num_columns = len(S[0])
+    cfg = config(ID3_debug=True, column_count=num_columns, maximum_depth=maximum_depth, IG_algotithm=IG_algotithm, attr_col_map=attr_col_map, unchanged_S=S)
 
-    return _ID3(cfg, S, attributes_map, 0)
+    return _ID3(cfg, S, attr_dict, 0)
 
 
 
-def _ID3(cfg: config, S, attributes_map, depth):
-    cfg.get_debug() and print("current size of attribute_map", len(attributes_map))
-    S_labels = S[:, 6]
+def _ID3(cfg: config, S, attr_dict, depth):
+    cfg.get_debug() and print("current size of attribute_map", len(attr_dict))
+    S_labels = S[:, cfg.get_label_column()]
     # base case
     if np.all(S_labels == S_labels[0]):
         cfg.get_debug() and print("find all labels the same:", S_labels[0])
-        if len(attributes_map) == 0:
-            label = util.findMostCommonLabel(cfg.get_unchanged_S())
+        if len(attr_dict) == 0:
+            label = util.findMostCommonLabel(cfg.get_unchanged_S(), cfg)
             return node(attribute=None, S=S, label=label, branch=None) # leaf_node
         else:
             label = S_labels[0]
@@ -35,29 +39,31 @@ def _ID3(cfg: config, S, attributes_map, depth):
     # initialize root node
     root_node = node(attribute=None, S=S, label=None, branch={})
     # pick Attribute
-    picked_A = IG(S, attributes_map, cfg.get_attr_col_map(), cfg.get_IG_algotithm())
-    A_values = attributes_map[picked_A]
+    picked_A = IG(S, attr_dict, cfg.get_attr_col_map(), cfg)
+    A = attr_dict[picked_A]
     root_node.attribute = picked_A 
 
     cfg.get_debug() and print("attr_name", picked_A)
-    for v in A_values:
+
+    # iterate over each value of A and generate a subtree for each value
+    for v in A.get_values():
         cfg.get_debug() and print("attr_value", v)
         root_node.branch[v] = None # new branch
-        S_v = S[np.where(S[:, cfg.get_attr_col_map()[picked_A]] == v)]
+        S_v = S[S[:, cfg.get_attr_col_map()[picked_A]] == v]
         if len(S_v) == 0:
             cfg.get_debug() and print("***S_v size is zero")
-            label = util.findMostCommonLabel(S)
+            label = util.findMostCommonLabel(S, cfg)
             root_node.branch[v] = node(attribute=None, S=[], label=label, branch=None) # leaf_node
         else:
             cfg.get_debug() and print("***S_v size is", len(S_v))
             if depth < cfg.get_maximum_depth():
                 # make a copy of the map and pop it, and pass it to the recursive call later
-                attribute_map_copy = copy.deepcopy(attributes_map)
+                attribute_map_copy = copy.deepcopy(attr_dict)
                 attribute_map_copy.pop(picked_A) 
                 root_node.branch[v] = _ID3(cfg, S_v, attribute_map_copy, depth+1)
             else:
                 cfg.get_debug() and print("***reached maximum depth level")
-                label = util.findMostCommonLabel(S)
+                label = util.findMostCommonLabel(S, cfg)
                 root_node.branch[v] = node(attribute=None, S=[], label=label, branch=None) # leaf_node
 
     return root_node
@@ -67,9 +73,10 @@ def traverse(root_node: node, dataset, attr_col_map):
     correct = 0
     incorrect = 0
     total = len(dataset)
+    num_columns = len(dataset[0])
     for data in dataset:
-        attr = data[:6]
-        label = data[6:7]
+        attr = data[:num_columns-1]
+        label = data[num_columns-1:num_columns]
         if _traverse(root_node, attr, label, attr_col_map):
             correct += 1
         else:
