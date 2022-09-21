@@ -1,4 +1,5 @@
 from DecisionTree.ID3 import ID3
+from DecisionTree.Config import config
 
 attributes = {
     "buying": ["vhigh", "high", "med", "low"],
@@ -24,7 +25,7 @@ train_file = "data/hw1/car/train.csv"
 
 
 def __main__(): 
-    tree = ID3(train_file, attributes, attr_col_map, labels)
+    tree = ID3(train_file, attributes, attr_col_map)
     print("decision tree")
     print(str(tree))
 

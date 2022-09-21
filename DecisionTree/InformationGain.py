@@ -17,18 +17,34 @@ def entropy(counts, total):
         e += ratio * math.log(ratio, 2)
     return -e
 
+def gini_index(counts, total):
+    ratios = np.divide(counts, total)
+    power = np.power(ratios, 2)
+    return 1 - np.sum(power)
+
+def majority_error(counts, total):
+    max_count = counts[np.argmax(counts)]
+    return (total - max_count) / max_count
 
 '''
 given S and attributes map
 returns name in the attribute with the best IG
 '''
-def IG(S, remaining_attributes, attr_col_mapping):
+def IG(S, remaining_attributes, attr_col_mapping, IG_algotithm):
     attribute_len = len(attr_col_mapping)
-    
+    IG_method = entropy
+    if IG_algotithm is "gini_index":
+        IG_method = gini_index
+    elif IG_algotithm is "majority_error":
+        IG_method = majority_error
+    else: 
+        IG_method = entropy
+
     # entropy of S
     S_size = len(S)
     _labels, counts = util.getValueAndFrequency(S, 6)
-    H_S = entropy(counts, S_size)
+
+    H_S = IG_method(counts, S_size)
 
     # IG of columns
     all_columns_IG = {}
@@ -41,15 +57,15 @@ def IG(S, remaining_attributes, attr_col_mapping):
         for attribute_value in remaining_attributes[attribute_name]:
             data_with_attribute_value = attribute_label[np.where(attribute_label[:,0]==attribute_value)[0]] 
             _attributes, counts = util.getValueAndFrequency(data_with_attribute_value, 1)
-            _entropy = entropy(counts, len(data_with_attribute_value))
+            _method = IG_method(counts, len(data_with_attribute_value))
             # subtract that attribute value entropy
-            all_columns_IG[attribute_name] -= len(data_with_attribute_value)/S_size * _entropy
+            all_columns_IG[attribute_name] -= len(data_with_attribute_value)/S_size * _method
 
             IG_debug and print("attribute value:", attribute_value)
             IG_debug and print("values mapping")
             IG_debug and print("values", _attributes)
             IG_debug and print("counts", counts)
-            IG_debug and print("entropy for \'" + str(attribute_value) + "\' is ", _entropy) 
+            IG_debug and print("entropy for \'" + str(attribute_value) + "\' is ", _method) 
             IG_debug and print()
 
     IG_debug and print("IG of all columns:", all_columns_IG)
