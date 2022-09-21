@@ -25,7 +25,7 @@ train_file = "data/hw1/car/train.csv"
 
 
 def __main__(): 
-    tree = ID3(train_file, attributes, attr_col_map)
+    tree = ID3(train_file, attributes, attr_col_map, maximum_depth=6)
     print("decision tree")
     print(str(tree))
 
