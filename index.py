@@ -1,4 +1,7 @@
+import numpy as np
+
 from DecisionTree.ID3 import ID3
+from DecisionTree.ID3 import traverse
 from DecisionTree.Config import config
 
 attributes = {
@@ -23,10 +26,25 @@ labels = ["unacc", "acc", "good", "vgood"]
 
 train_file = "data/hw1/car/train.csv"
 
+def _read(file):
+    with open(file, 'r') as f:
+        data = []
+        for l in f:
+            data.append(l)
+        return data
+
+def process(file):
+    data = _read(file)
+    S = np.empty((len(data), 7), dtype=object)
+    for i in range(len(data)):
+        S[i] = data[i].strip().split(',')
+    return S
 
 def __main__(): 
-    tree = ID3(train_file, attributes, attr_col_map, maximum_depth=6)
-    print("decision tree")
-    print(str(tree))
+    data = process(train_file)
+    tree = ID3(data, attributes, attr_col_map, maximum_depth=6)
+    correct_ratio, incorrect_ratio = traverse(tree, data, attr_col_map)
+    print("correct_ratio:", correct_ratio)
+    print("incorrect_ratio:", incorrect_ratio)
 
 __main__()

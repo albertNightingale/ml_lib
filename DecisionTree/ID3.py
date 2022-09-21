@@ -12,22 +12,12 @@ from DecisionTree.Config import config
 # attributes_map is dictionary.
 # ex:
 #       name: [vhigh, high, med, low]
-def ID3(file, attributes_map, attr_col_map, maximum_depth=6, IG_algotithm="entropy"):
-    data = read(file)
-    S = np.empty((len(data), 7), dtype=object)
-    for i in range(len(data)):
-        S[i] = data[i].strip().split(',')
-    
-    cfg = config(ID3_debug=True, maximum_depth=maximum_depth, IG_algotithm=IG_algotithm, attr_col_map=attr_col_map, unchanged_S=S)
+def ID3(S, attributes_map, attr_col_map, maximum_depth=6, IG_algotithm="entropy"):    
+    cfg = config(ID3_debug=False, maximum_depth=maximum_depth, IG_algotithm=IG_algotithm, attr_col_map=attr_col_map, unchanged_S=S)
 
     return _ID3(cfg, S, attributes_map, 0)
 
-def read(file):
-    with open(file, 'r') as f:
-        data = []
-        for l in f:
-            data.append(l)
-        return data
+
 
 def _ID3(cfg: config, S, attributes_map, depth):
     cfg.get_debug() and print("current size of attribute_map", len(attributes_map))
@@ -71,3 +61,32 @@ def _ID3(cfg: config, S, attributes_map, depth):
                 root_node.branch[v] = node(attribute=None, S=[], label=label, branch=None) # leaf_node
 
     return root_node
+
+
+def traverse(root_node: node, dataset, attr_col_map):
+    correct = 0
+    incorrect = 0
+    total = len(dataset)
+    for data in dataset:
+        attr = data[:6]
+        label = data[6:7]
+        if _traverse(root_node, attr, label, attr_col_map):
+            correct += 1
+        else:
+            incorrect += 1
+    return correct/total, incorrect/total
+
+def _traverse(nd: node, attr, label, attr_col_map):
+    if nd.label != None:
+        if nd.label != label: 
+            return False
+        else: 
+            return True
+    else:
+        attr_idx = attr_col_map[nd.attribute]
+        attr_value = attr[attr_idx]
+        return _traverse(nd.branch[attr_value], attr, label, attr_col_map)
+
+    
+
+
