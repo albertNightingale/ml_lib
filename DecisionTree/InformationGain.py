@@ -23,6 +23,8 @@ def gini_index(counts, total):
     return 1 - np.sum(power)
 
 def majority_error(counts, total):
+    if len(counts) == 0:
+        return 0
     max_count = counts[np.argmax(counts)]
     return (total - max_count) / max_count
 
@@ -72,10 +74,10 @@ def IG(S, remaining_attributes, attr_col_mapping, IG_algotithm):
     
     # return attribute name with highest IG
     curr_max_attr = None
-    curr_max_IG = 0
+    curr_max_IG = None
     
     for attribute_name in all_columns_IG:
-        if all_columns_IG[attribute_name] >= curr_max_IG:
+        if curr_max_IG == None or all_columns_IG[attribute_name] >= curr_max_IG:
             curr_max_attr = attribute_name
             curr_max_IG = all_columns_IG[attribute_name]
     IG_debug and print("Highest of all:", curr_max_attr, ", IG score:", curr_max_IG)

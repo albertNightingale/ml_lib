@@ -25,6 +25,7 @@ attr_col_map = {
 labels = ["unacc", "acc", "good", "vgood"]
 
 train_file = "data/hw1/car/train.csv"
+test_file = "data/hw1/car/test.csv"
 
 def _read(file):
     with open(file, 'r') as f:
@@ -42,9 +43,29 @@ def process(file):
 
 def __main__(): 
     data = process(train_file)
-    tree = ID3(data, attributes, attr_col_map, maximum_depth=6)
-    correct_ratio, incorrect_ratio = traverse(tree, data, attr_col_map)
-    print("correct_ratio:", correct_ratio)
-    print("incorrect_ratio:", incorrect_ratio)
+    test_data = process(test_file)
+
+    methods2test = ["entropy", "gini_index", "majority_error"]
+    depth2test = [1, 2, 3, 4, 5, 6]
+
+    print("testing with training data")
+    for depth in depth2test:
+        print("*****depth:", depth, "*****")
+        for method in methods2test:
+            print("---| method:", method)
+            tree = ID3(data, attributes, attr_col_map, maximum_depth=depth, IG_algotithm=method)
+            correct_ratio, incorrect_ratio = traverse(tree, data, attr_col_map)
+            print("------| correct_ratio:", correct_ratio)
+            print("------| incorrect_ratio:", incorrect_ratio)
+    
+    print("testing with the test data")
+    for depth in depth2test:
+        print("*****depth:", depth, "*****")
+        for method in methods2test:
+            print("---| method:", method)
+            tree = ID3(data, attributes, attr_col_map, maximum_depth=depth, IG_algotithm=method)
+            correct_ratio, incorrect_ratio = traverse(tree, test_data, attr_col_map)
+            print("------| correct_ratio:", correct_ratio)
+            print("------| incorrect_ratio:", incorrect_ratio)
 
 __main__()
