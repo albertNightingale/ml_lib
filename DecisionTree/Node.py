@@ -1,5 +1,6 @@
 
 class node:
+    # attribute: the attribute that this node is split on
     def __init__(self, attribute=None, S=None, label=None, branch={}):
         self.attribute = attribute
         self.S = S

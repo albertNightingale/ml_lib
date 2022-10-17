@@ -1,8 +1,6 @@
 import numpy as np
 import copy
 
-from typing import Type
-
 from DecisionTree.Node import node
 from DecisionTree.InformationGain import IG
 import DecisionTree.util as util
@@ -20,7 +18,6 @@ def ID3(S, attr_dict, attr_col_map, maximum_depth=6, IG_algotithm="entropy"):
     cfg = config(ID3_debug=False, column_count=num_columns, maximum_depth=maximum_depth, IG_algotithm=IG_algotithm, attr_col_map=attr_col_map, unchanged_S=S)
 
     return _ID3(cfg, S, attr_dict, 0)
-
 
 
 def _ID3(cfg: config, S, attr_dict, depth):

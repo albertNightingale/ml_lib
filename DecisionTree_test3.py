@@ -1,3 +1,7 @@
+"""
+HW 1 problem 2b
+"""
+
 import numpy as np
 import copy
 

@@ -1,16 +1,23 @@
+"""
+HW 1 problem 2a, b, c
+"""
 import numpy as np
+
 from DecisionTree.ID3 import ID3
 from DecisionTree.ID3 import traverse
 
+from ProcessData.Attribute import Attribute
+
 attributes = {
-    "buying": ["vhigh", "high", "med", "low"],
-    "maint": ["vhigh", "high", "med", "low"],
-    "doors": ["2", "3", "4", "5more"],
-    "persons": ["2", "4", "more"],
-    "lug_boot": ["small", "med", "big"],
-    "safety": ["low", "med", "high"]
+    "buying": Attribute("buying", "categorical", ["vhigh", "high", "med", "low"]),
+    "maint": Attribute("maint", "categorical", ["vhigh", "high", "med", "low"]),
+    "doors": Attribute("doors", "categorical", ["2", "3", "4", "5more"]),
+    "persons": Attribute("persons", "categorical", ["2", "4", "more"]),
+    "lug_boot": Attribute("lug_boot", "categorical", ["small", "med", "big"]),
+    "safety": Attribute("safety", "categorical", ["low", "med", "high"])
 }
 
+# attribute to column index map
 attr_col_map = {
     "buying": 0,
     "maint": 1,
@@ -52,7 +59,7 @@ def main():
         for method in methods2test:
             print("---| method:", method)
             tree = ID3(data, attributes, attr_col_map, maximum_depth=depth, IG_algotithm=method)
-            correct_ratio, incorrect_ratio = traverse(tree, data, attr_col_map)
+            correct_ratio, incorrect_ratio = traverse(tree, data, attr_col_map, attributes)
             print("------| correct_ratio:", correct_ratio)
     
     print("testing with the test data")
@@ -61,7 +68,7 @@ def main():
         for method in methods2test:
             print("---| method:", method)
             tree = ID3(data, attributes, attr_col_map, maximum_depth=depth, IG_algotithm=method)
-            correct_ratio, incorrect_ratio = traverse(tree, test_data, attr_col_map)
+            correct_ratio, incorrect_ratio = traverse(tree, test_data, attr_col_map, attributes)
             print("------| correct_ratio:", correct_ratio)
 
 if __name__ == "__main__":

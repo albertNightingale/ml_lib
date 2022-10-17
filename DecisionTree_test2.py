@@ -1,3 +1,8 @@
+"""
+HW 1 problem 3a)
+"""
+
+
 import numpy as np
 import copy
 
@@ -67,6 +72,7 @@ def process(file):
         S[i] = data[i].strip().split(',')
     return S
 
+# return normalized set of attributes and normalized data
 def normalizeData(data, attr_col_map, attributes):
     attributes1, data1 = normalizeBinary(data, attr_col_map, attributes)
     attributes2, data2 = convertNumericToBinary(data1, attr_col_map, attributes1)
