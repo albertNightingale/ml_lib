@@ -44,7 +44,7 @@ def normalizeUnknownAttributeValue(dataset, attr_col_map, attributes):
             col_index = attr_col_map[attr_name] # get the column index of the attribute
 
             # get the most common value of the attribute
-            _value, _counts = util.getValueAndFrequency(dataset, col_index)
+            _value, _counts = util.getAttributeFrequency(dataset, col_index)
             most_common_value = _value[np.argmax(_counts)]
 
             for data in dataset:

@@ -67,9 +67,11 @@ def process(file):
     data = _read(file)
     num_cols = len(data[0].strip().split(','))
 
-    S = np.empty((len(data), num_cols), dtype=object)
+    S = np.empty((len(data), num_cols + 1), dtype=object)
     for i in range(len(data)):
-        S[i] = data[i].strip().split(',')
+        row_i = data[i].strip().split(',')
+        row_i.append(i)
+        S[i] = row_i
     return S
 
 # return normalized set of attributes and normalized data

@@ -40,7 +40,7 @@ given S and attributes map
 returns name in the attribute with the best IG
 '''
 def IG(S, remaining_attributes, attr_col_mapping, cfg: config):
-    attribute_len = len(attr_col_mapping)
+    # determine the IG method to use
     IG_method = entropy
     if cfg.get_IG_algotithm() == "gini_index":
         IG_method = gini_index
@@ -51,7 +51,7 @@ def IG(S, remaining_attributes, attr_col_mapping, cfg: config):
     
     # entropy of S
     S_size = len(S)
-    _labels, counts = util.getValueAndFrequency(S, cfg.get_label_column())
+    _labels, counts = util.getAttributeFrequency(S, cfg.get_label_column())
 
     _main_result = IG_method(counts, S_size)
 
@@ -67,7 +67,7 @@ def IG(S, remaining_attributes, attr_col_mapping, cfg: config):
         
         for attribute_value in attribute.get_values():
             S_v = attribute_label[attribute_label[:,0]==attribute_value] 
-            _labels, _counts = util.getValueAndFrequency(S_v, 1)
+            _labels, _counts = util.getAttributeFrequency(S_v, 1)
             _result = IG_method(counts, len(S_v))
                 
             # subtract the result from _main_result

@@ -5,13 +5,15 @@ class config:
         self.ID3_debug = ID3_debug
         self.maximum_depth = maximum_depth
         self.column_count = column_count
-        self.label_column = column_count - 1
         self.IG_algotithm = IG_algotithm
         self.attr_col_map = attr_col_map
         self.unchanged_S = unchanged_S
     
+    def get_index_column(self):
+        return self.column_count - 2
+    
     def get_label_column(self):
-        return self.label_column
+        return self.column_count - 2
 
     def get_column_count(self):
         return self.column_count

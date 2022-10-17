@@ -77,8 +77,8 @@ def traverse(root_node: node, dataset, attr_col_map, attr_map):
     total = len(dataset)
     num_columns = len(dataset[0])
     for data in dataset:
-        attr = data[:num_columns-1]
-        label = data[num_columns-1:num_columns]
+        attr = data[:num_columns-2]
+        label = data[num_columns-2:num_columns-1]
         if _traverse(root_node, attr, label, attr_col_map, attr_map):
             correct += 1
         else:
