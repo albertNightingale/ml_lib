@@ -85,7 +85,7 @@ def main():
     unprocessed_train_data = copy.deepcopy(process(train_file))
     attributes_normalized_train, train_data = normalizeData(copy.deepcopy(unprocessed_train_data), attr_col_map, attributes)
 
-    unprocessed_test_data = copy.deepcopy(process(train_file))
+    unprocessed_test_data = copy.deepcopy(process(test_file))
     attributes_normalized_test, test_data = normalizeData(copy.deepcopy(unprocessed_test_data), attr_col_map, attributes)
 
     """

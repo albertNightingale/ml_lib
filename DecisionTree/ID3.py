@@ -67,19 +67,24 @@ def _ID3(cfg: config, S, attr_dict, depth):
     return root_node
 
 
-def assess_id3(root_node: node, dataset, attr_col_map, attr_map):
+def assess_id3(root_node: node, dataset, attr_col_map, attr_map, weight=None):
     incorrect_count = 0
     incorrect_indices = []
     total = len(dataset)
 
     num_columns = len(dataset[0])
 
-    for data in dataset:
+    for i in range(total):
+        data = dataset[i]
         attr = data[:num_columns-2]
         expected_label = data[num_columns-2:num_columns-1]
         actual_label = _traverse(root_node, attr, attr_col_map, attr_map)
         if expected_label != actual_label:
-            incorrect_count += 1
+            if weight is None:
+                incorrect_count += 1
+            else:
+                normal_weight = 1/total 
+                incorrect_count += weight[i] / normal_weight # weight each exmaple by its weight
             index = data[-1]
             incorrect_indices.append(index)
             

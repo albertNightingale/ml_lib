@@ -2,11 +2,16 @@ import numpy as np
 
 from DecisionTree.ID3 import ID3, assess_id3, traverse_one
 
-from EnsembleLearning.util import get_alpha
-from EnsembleLearning.util import get_distribution
+from EnsembleLearning.util import get_alpha, get_distribution
+from EnsembleLearning.Config import config
 
-def adaboost(S, attr_dict, attr_col_map, T = 500):
+def adaboost(S, attr_dict, attr_col_map, T):
+    
+    cfg = config(S, ada_debug=False, iterations=T, attr_col_map=attr_col_map, attr_dict=attr_dict)
+    return _adaboost(S, cfg)
 
+def _adaboost(S, cfg: config):
+    T = cfg.get_iterations()
     # initialize weights 
     weight = np.full(len(S), 1/len(S))
     # initialize classifiers
@@ -15,16 +20,16 @@ def adaboost(S, attr_dict, attr_col_map, T = 500):
 
     for i in range(T):
         # Train a weak learner
-        classifiers[i] = ID3(S, attr_dict, attr_col_map, maximum_depth=1, IG_algotithm="entropy", weight=weight)
+        classifiers[i] = ID3(S, cfg.get_attr_dict(), cfg.get_attr_col_map(), maximum_depth=1, IG_algotithm="entropy", weight=weight)
         # test the weak learner
-        error_rate, incorrect_indices = assess_id3(classifiers[i], S, attr_col_map, attr_dict)
+        error_rate, incorrect_indices = assess_id3(classifiers[i], S, cfg.get_attr_col_map(), cfg.get_attr_dict(), weight)
         # Update the alpha
-        alpha[i] = get_alpha(error_rate)
+        alpha[i] = get_alpha(error_rate) 
         # Update the weights
         weight = get_distribution(weight, alpha[i], incorrect_indices)
 
+    cfg.get_debug() and cfg.print("adaboost T = ", T, " alpha = ", alpha)
     return classifiers, alpha
-
 
 def assess_adaboost(classifiers, alpha, dataset, attr_col_map, attr_map, label_values: list):
     incorrect_count = 0

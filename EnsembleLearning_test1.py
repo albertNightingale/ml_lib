@@ -84,11 +84,12 @@ def main():
     unprocessed_train_data = copy.deepcopy(process(train_file))
     _attributes_normalized_train, train_data = normalizeData(copy.deepcopy(unprocessed_train_data), attr_col_map, attributes)
 
-    unprocessed_test_data = copy.deepcopy(process(train_file))
+    unprocessed_test_data = copy.deepcopy(process(test_file))
     _attributes_normalized_test, test_data = normalizeData(copy.deepcopy(unprocessed_test_data), attr_col_map, attributes)
 
 
-    T_value_to_test = np.arange(1, 500)
+    T_value_to_test = np.arange(1, 500, 5)
+    print("T values to test: ", T_value_to_test)
 
     column_name = "T, train_accuracy, test_accuracy"
     print(column_name)
