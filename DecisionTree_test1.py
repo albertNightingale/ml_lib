@@ -4,7 +4,7 @@ HW 1 problem 2a, b, c
 import numpy as np
 
 from DecisionTree.ID3 import ID3
-from DecisionTree.ID3 import traverse
+from DecisionTree.ID3 import assess_id3
 
 from ProcessData.Attribute import Attribute
 
@@ -63,8 +63,8 @@ def main():
         for method in methods2test:
             print("---| method:", method)
             tree = ID3(data, attributes, attr_col_map, maximum_depth=depth, IG_algotithm=method)
-            correct_ratio, incorrect_ratio = traverse(tree, data, attr_col_map, attributes)
-            print("------| correct_ratio:", correct_ratio)
+            incorrect_ratio, incorrect_indices = assess_id3(tree, data, attr_col_map, attributes)
+            print("------| correct_ratio:", incorrect_ratio)
     
     print("testing with the test data")
     for depth in depth2test:
@@ -72,8 +72,8 @@ def main():
         for method in methods2test:
             print("---| method:", method)
             tree = ID3(data, attributes, attr_col_map, maximum_depth=depth, IG_algotithm=method)
-            correct_ratio, incorrect_ratio = traverse(tree, test_data, attr_col_map, attributes)
-            print("------| correct_ratio:", correct_ratio)
+            incorrect_ratio, incorrect_indices = assess_id3(tree, test_data, attr_col_map, attributes)
+            print("------| correct_ratio:", incorrect_ratio)
 
 if __name__ == "__main__":
     main()

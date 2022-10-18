@@ -1,17 +1,15 @@
 """
-HW 1 problem 2b
+HW 2 problem 2a
 """
 
 import numpy as np
 import copy
 
-from DecisionTree.ID3 import ID3
-from DecisionTree.ID3 import assess_id3
+from EnsembleLearning.EnsembleLearning import adaboost, assess_adaboost
 
 from ProcessData.Attribute import Attribute
 from ProcessData.AttributeNormalizer import convertNumericToBinary
 from ProcessData.AttributeNormalizer import normalizeBinary
-from ProcessData.AttributeNormalizer import normalizeUnknownAttributeValue
 
 attributes = {
     "age": Attribute("age", "numeric", None),
@@ -74,42 +72,34 @@ def process(file):
         S[i] = row_i
     return S
 
+# return normalized set of attributes and normalized data
 def normalizeData(data, attr_col_map, attributes):
     attributes1, data1 = normalizeBinary(data, attr_col_map, attributes)
     attributes2, data2 = convertNumericToBinary(data1, attr_col_map, attributes1)
-    data3 = normalizeUnknownAttributeValue(data2, attr_col_map, attributes2)
 
-    return attributes2, data3
+    return attributes2, data2
+
 
 def main(): 
     unprocessed_train_data = copy.deepcopy(process(train_file))
-    attributes_normalized_train, train_data = normalizeData(copy.deepcopy(unprocessed_train_data), attr_col_map, attributes)
+    _attributes_normalized_train, train_data = normalizeData(copy.deepcopy(unprocessed_train_data), attr_col_map, attributes)
 
     unprocessed_test_data = copy.deepcopy(process(train_file))
-    attributes_normalized_test, test_data = normalizeData(copy.deepcopy(unprocessed_test_data), attr_col_map, attributes)
+    _attributes_normalized_test, test_data = normalizeData(copy.deepcopy(unprocessed_test_data), attr_col_map, attributes)
 
-    """
-    print("attributes:")
-    for attr in _attributes_normalized:
-        print(_attributes_normalized[attr])
-    tree = ID3(data, _attributes_normalized, attr_col_map, maximum_depth=16, IG_algotithm="entropy")
-    """
 
-    methods2test = ["entropy", "gini_index", "majority_error"]
-    depth2test = np.arange(1, 17)
+    T_value_to_test = np.arange(1, 500)
 
-    column_name = "method, depth, train_accuracy, test_accuracy"
+    column_name = "T, train_accuracy, test_accuracy"
     print(column_name)
-    for method in methods2test:
-        for depth in depth2test:
-            output = method + ","
-            output += str(depth) + ","
-            tree = ID3(train_data, attributes_normalized_train, attr_col_map, maximum_depth=depth, IG_algotithm=method)
-            incorrect_ratio, incorrect_indices = assess_id3(tree, train_data, attr_col_map, attributes_normalized_train)
-            output += str(1-incorrect_ratio) + ","
-            incorrect_ratio, incorrect_indices = assess_id3(tree, test_data, attr_col_map, attributes_normalized_test)
-            output += str(1-incorrect_ratio)
-            print(output)
+    for T in T_value_to_test:
+        output = str(T) + ","
+        classifiers, alpha = adaboost(train_data, _attributes_normalized_train, attr_col_map, T)
+        incorrect_ratio, incorrect_indices = assess_adaboost(classifiers, alpha, train_data, attr_col_map, _attributes_normalized_train, labels)
+        output += str(1-incorrect_ratio) + ","
+        incorrect_ratio, incorrect_indices = assess_adaboost(classifiers, alpha, test_data, attr_col_map, _attributes_normalized_test, labels)
+        output += str(1-incorrect_ratio)
+        print(output)
 
 if __name__ == "__main__":
     main()

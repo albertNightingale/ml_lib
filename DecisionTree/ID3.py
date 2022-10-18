@@ -6,16 +6,12 @@ from DecisionTree.InformationGain import IG
 import DecisionTree.util as util
 from DecisionTree.Config import config
 
-# import attributes
-import ProcessData.Attribute as Attribute
-
 # attr_dict is a dictionary of attributes.
 # ex:
 #       name: [vhigh, high, med, low]
 # 
-def ID3(S, attr_dict, attr_col_map, maximum_depth=6, IG_algotithm="entropy"):    
-    num_columns = len(S[0])
-    cfg = config(ID3_debug=False, column_count=num_columns, maximum_depth=maximum_depth, IG_algotithm=IG_algotithm, attr_col_map=attr_col_map, unchanged_S=S)
+def ID3(S, attr_dict, attr_col_map, maximum_depth=6, IG_algotithm="entropy", weight=None):
+    cfg = config(S, weight=weight, ID3_debug=False, maximum_depth=maximum_depth, IG_algotithm=IG_algotithm, attr_col_map=attr_col_map)
 
     return _ID3(cfg, S, attr_dict, 0)
 
@@ -29,13 +25,13 @@ def _ID3(cfg: config, S, attr_dict, depth):
         cfg.get_debug() and print("!!!! BASE CASE # 1: find all labels the same:", S_labels[0])
         label = S_labels[0]
         if len(attr_dict) == 0: # no more attributes to split
-            label = util.findMostCommonLabel(cfg.get_unchanged_S(), cfg)
+            label = util.findMostCommonLabel(cfg.get_unmodified_S(), cfg)
             return node(attribute=None, S=S, label=label, branch=None) # leaf_node
         return node(attribute=None, S=S, label=label, branch=None) # leaf_node
     # base case # 2
     if len(attr_dict) == 0: # no more attributes to split
         cfg.get_debug() and print("!!!! BASE CASE # 2: no more attributes to split")
-        label = util.findMostCommonLabel(cfg.get_unchanged_S(), cfg)
+        label = util.findMostCommonLabel(cfg.get_unmodified_S(), cfg)
         return node(attribute=None, S=S, label=label, branch=None) # leaf_node
 
     # initialize root node
@@ -71,26 +67,34 @@ def _ID3(cfg: config, S, attr_dict, depth):
     return root_node
 
 
-def traverse(root_node: node, dataset, attr_col_map, attr_map):
-    correct = 0
-    incorrect = 0
+def assess_id3(root_node: node, dataset, attr_col_map, attr_map):
+    incorrect_count = 0
+    incorrect_indices = []
     total = len(dataset)
+
     num_columns = len(dataset[0])
+
     for data in dataset:
         attr = data[:num_columns-2]
-        label = data[num_columns-2:num_columns-1]
-        if _traverse(root_node, attr, label, attr_col_map, attr_map):
-            correct += 1
-        else:
-            incorrect += 1
-    return correct/total, incorrect/total
+        expected_label = data[num_columns-2:num_columns-1]
+        actual_label = _traverse(root_node, attr, attr_col_map, attr_map)
+        if expected_label != actual_label:
+            incorrect_count += 1
+            index = data[-1]
+            incorrect_indices.append(index)
+            
+    return incorrect_count/total, incorrect_indices
 
-def _traverse(nd: node, attr, label, attr_col_map, attr_map):
+
+def traverse_one(root_node: node, data, attr_col_map, attr_map):
+    num_columns = len(data)
+    attr = data[:num_columns-2]
+    
+    return _traverse(root_node, attr, attr_col_map, attr_map)
+
+def _traverse(nd: node, attr, attr_col_map, attr_map):
     if nd.label != None:
-        if nd.label != label: 
-            return False
-        else: 
-            return True
+        return nd.label
     else:
         attr_idx = attr_col_map[nd.attribute]
         attr_obj = attr_map[nd.attribute]
@@ -103,16 +107,16 @@ def _traverse(nd: node, attr, label, attr_col_map, attr_map):
                 converted_attr_val = attr_obj.get_values()[0]
             else:
                 converted_attr_val = attr_obj.get_values()[1]
-            return _traverse(nd.branch[converted_attr_val], attr, label, attr_col_map, attr_map)
+            return _traverse(nd.branch[converted_attr_val], attr, attr_col_map, attr_map)
         elif attr_obj.get_type() == "binary":
             converted_attr_val = None
             if test_attr_val == "Yes":
                 converted_attr_val = True
             else:
                 converted_attr_val = False
-            return _traverse(nd.branch[converted_attr_val], attr, label, attr_col_map, attr_map)
+            return _traverse(nd.branch[converted_attr_val], attr, attr_col_map, attr_map)
         else:
-            return _traverse(nd.branch[test_attr_val], attr, label, attr_col_map, attr_map)
+            return _traverse(nd.branch[test_attr_val], attr, attr_col_map, attr_map)
 
     
 

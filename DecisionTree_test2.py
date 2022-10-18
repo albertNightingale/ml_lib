@@ -7,7 +7,7 @@ import numpy as np
 import copy
 
 from DecisionTree.ID3 import ID3
-from DecisionTree.ID3 import traverse
+from DecisionTree.ID3 import assess_id3
 
 from ProcessData.Attribute import Attribute
 from ProcessData.AttributeNormalizer import convertNumericToBinary
@@ -83,7 +83,10 @@ def normalizeData(data, attr_col_map, attributes):
 
 def main(): 
     unprocessed_train_data = copy.deepcopy(process(train_file))
-    _attributes_normalized, data = normalizeData(copy.deepcopy(unprocessed_train_data), attr_col_map, attributes)
+    attributes_normalized_train, train_data = normalizeData(copy.deepcopy(unprocessed_train_data), attr_col_map, attributes)
+
+    unprocessed_test_data = copy.deepcopy(process(train_file))
+    attributes_normalized_test, test_data = normalizeData(copy.deepcopy(unprocessed_test_data), attr_col_map, attributes)
 
     """
     print("attributes:")
@@ -95,16 +98,17 @@ def main():
     methods2test = ["entropy", "gini_index", "majority_error"]
     depth2test = np.arange(1, 17)
 
-    column_name = "method, depth, train_accuracy, t"
+    column_name = "method, depth, train_accuracy, test_accuracy"
+    print(column_name)
     for method in methods2test:
         for depth in depth2test:
             output = method + ","
             output += str(depth) + ","
-            tree = ID3(data, _attributes_normalized, attr_col_map, maximum_depth=depth, IG_algotithm=method)
-            correct_ratio, incorrect_ratio = traverse(tree, unprocessed_train_data, attr_col_map, _attributes_normalized)
-            output += str(correct_ratio) + ","
-            correct_ratio, incorrect_ratio = traverse(tree, unprocessed_train_data, attr_col_map, _attributes_normalized)
-            output += str(correct_ratio)
+            tree = ID3(train_data, attributes_normalized_train, attr_col_map, maximum_depth=depth, IG_algotithm=method)
+            incorrect_ratio, incorrect_indices = assess_id3(tree, train_data, attr_col_map, attributes_normalized_train)
+            output += str(1-incorrect_ratio) + ","
+            incorrect_ratio, incorrect_indices = assess_id3(tree, test_data, attr_col_map, attributes_normalized_test)
+            output += str(1-incorrect_ratio)
             print(output)
 
 if __name__ == "__main__":
