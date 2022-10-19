@@ -1,11 +1,10 @@
 """
-HW 2 problem 2a
+HW 2 problem 2b
 """
-
 import numpy as np
 import copy
 
-from EnsembleLearning.EnsembleLearning import adaboost, assess
+from EnsembleLearning.EnsembleLearning import bagging, assess
 
 from ProcessData.Attribute import Attribute
 from ProcessData.AttributeNormalizer import convertNumericToBinary
@@ -94,10 +93,10 @@ def main():
     print(column_name)
     for T in T_value_to_test:
         output = str(T) + ","
-        classifiers, alpha, error_rates = adaboost(train_data, _attributes_normalized_train, attr_col_map, T)
+        classifiers, alpha, error_rates = bagging(train_data, _attributes_normalized_train, attr_col_map, T)
         incorrect_ratio, incorrect_indices = assess(classifiers, alpha, train_data, attr_col_map, _attributes_normalized_train, labels)
         output += str(1-incorrect_ratio) + ","
         incorrect_ratio, incorrect_indices = assess(classifiers, alpha, test_data, attr_col_map, _attributes_normalized_test, labels)
         output += str(1-incorrect_ratio) + "\n"
-        output += str(error_rates) 
+        output += str(error_rates)
         print(output)
