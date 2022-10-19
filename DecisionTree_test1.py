@@ -74,6 +74,3 @@ def main():
             tree = ID3(data, attributes, attr_col_map, maximum_depth=depth, IG_algotithm=method)
             incorrect_ratio, incorrect_indices = assess_id3(tree, test_data, attr_col_map, attributes)
             print("------| correct_ratio:", incorrect_ratio)
-
-if __name__ == "__main__":
-    main()

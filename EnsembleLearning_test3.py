@@ -1,14 +1,10 @@
 """
-HW 1 problem 3a)
+HW 2 problem 2b
 """
-
-
-from cgi import test
 import numpy as np
 import copy
 
-from DecisionTree.ID3 import ID3
-from DecisionTree.ID3 import assess_id3
+from EnsembleLearning.EnsembleLearning import bagging, assess
 
 from ProcessData.Attribute import Attribute
 from ProcessData.AttributeNormalizer import convertNumericToBinary
@@ -82,32 +78,28 @@ def normalizeData(data, attr_col_map, attributes):
 
     return attributes2, data2
 
+
 def main(): 
     unprocessed_train_data = copy.deepcopy(process(train_file))
-    attributes_normalized_train, train_data = normalizeData(copy.deepcopy(unprocessed_train_data), attr_col_map, attributes)
+    _attributes_normalized_train, train_data = normalizeData(copy.deepcopy(unprocessed_train_data), attr_col_map, attributes)
 
     unprocessed_test_data = copy.deepcopy(process(test_file))
-    attributes_normalized_test, test_data = normalizeData(copy.deepcopy(unprocessed_test_data), attr_col_map, attributes)
+    _attributes_normalized_test, test_data = normalizeData(copy.deepcopy(unprocessed_test_data), attr_col_map, attributes)
 
-    """
-    print("attributes:")
-    for attr in _attributes_normalized:
-        print(_attributes_normalized[attr])
-    tree = ID3(data, _attributes_normalized, attr_col_map, maximum_depth=16, IG_algotithm="entropy")
-    """
 
-    methods2test = ["entropy", "gini_index", "majority_error"]
-    depth2test = np.arange(1, 17)
+    T_value_to_test = np.concatenate((np.arange(1, 20), np.arange(50, 501, 50)))
+    sampling_sizes = np.array([2, 4, 6])
 
-    column_name = "method, depth, train_accuracy, test_accuracy"
+    column_name = "sampling_size, T, train_accuracy, test_accuracy"
     print(column_name)
-    for method in methods2test:
-        for depth in depth2test:
-            output = method + ","
-            output += str(depth) + ","
-            tree = ID3(train_data, attributes_normalized_train, attr_col_map, maximum_depth=depth, IG_algotithm=method)
-            incorrect_ratio, incorrect_indices = assess_id3(tree, train_data, attr_col_map, attributes_normalized_train)
+    for T in T_value_to_test:
+        for sample_size in sampling_sizes:
+            output = str(sample_size) + ","
+            output += str(T) + ","
+            classifiers, alpha, error_rates = bagging(train_data, _attributes_normalized_train, attr_col_map, T, True, sample_size)
+            incorrect_ratio, incorrect_indices = assess(classifiers, alpha, train_data, attr_col_map, _attributes_normalized_train, labels)
             output += str(1-incorrect_ratio) + ","
-            incorrect_ratio, incorrect_indices = assess_id3(tree, test_data, attr_col_map, attributes_normalized_test)
-            output += str(1-incorrect_ratio)
+            incorrect_ratio, incorrect_indices = assess(classifiers, alpha, test_data, attr_col_map, _attributes_normalized_test, labels)
+            output += str(1-incorrect_ratio) + "\n"
+            output += str(error_rates)
             print(output)

@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 from DecisionTree.ID3 import ID3, assess_id3, traverse_one
 
@@ -33,13 +34,16 @@ def _adaboost(S, cfg: ada_config):
     cfg.get_debug() and cfg.print("T = ", T, " alpha = ", alphas)
     return classifiers, alphas, error_rates
 
-def bagging(S, attr_dict, attr_col_map, T):
-    cfg = bagging_config(S, bagging_debug=False, iterations=T, attr_col_map=attr_col_map, attr_dict=attr_dict)
+def bagging(S, attr_dict, attr_col_map, T, random_forest=False, attribute_sampling_size=None):
+    cfg = bagging_config(S, False, random_forest, attribute_sampling_size, iterations=T, attr_col_map=attr_col_map, attr_dict=attr_dict)
     return _bagging(S, cfg)
 
 def _bagging(S, cfg: bagging_config):
     T = cfg.get_iterations()
     num_of_columns = cfg.get_column_count()
+    rf = cfg.get_random_forest()
+    attr_dict = copy.deepcopy(cfg.get_attr_dict())
+    attr_col_map = copy.deepcopy(cfg.get_attr_col_map())
 
     # initialize classifiers
     classifiers = np.empty(T, dtype=object)
@@ -49,13 +53,38 @@ def _bagging(S, cfg: bagging_config):
     for i in range(T):
         # Generate a bootstrap sample uniformally
         bootstrap_sample = S[np.random.choice(np.arange(len(S)), len(S), replace=True)]
-        # Train a weak learner
-        classifiers[i] = ID3(bootstrap_sample, cfg.get_attr_dict(), cfg.get_attr_col_map(), maximum_depth=num_of_columns, IG_algotithm="entropy")
-        # test the weak learner
-        error_rate, incorrect_indices = assess_id3(classifiers[i], S, cfg.get_attr_col_map(), cfg.get_attr_dict())
+        
+        if rf: # pick a random subset of attributes without replacement
+            A_subset_indices = np.random.choice(np.arange(num_of_columns), cfg.get_attribute_sampling_size(), replace=False)
+            
+            # remove the attributes that are not in the subset
+            # clean up the attr_col_map and update it with the new indices
+            attr_col_map = {}
+            _i = 0
+            for col_name, col_index in cfg.get_attr_col_map().items():
+                if col_index not in A_subset_indices:
+                    del attr_dict[col_name]
+                else:    
+                    attr_col_map[col_name] = _i
+                    _i+=1      
+
+            # sample only the columns with the subset
+            bootstrap_sample = bootstrap_sample[:, A_subset_indices]   
+            # update the number of columns
+            num_of_columns = cfg.get_attribute_sampling_size()
+
+        # Train a classifier on the bootstrap sample and on the subset of attributes that is randomly selected without replacement
+        c = ID3(bootstrap_sample, attr_dict, attr_col_map, maximum_depth=num_of_columns, IG_algotithm="entropy")
+        classifiers[i] = c
+        # test the learner
+        error_rate, incorrect_indices = assess_id3(classifiers[i], bootstrap_sample, attr_col_map, attr_dict)
         error_rates[i] = error_rate
         # Update the alpha
         alphas[i] = get_alpha(error_rate) 
+
+        if rf: # change the attributes back to the original before the next iteration sampling
+            attr_dict = copy.deepcopy(cfg.get_attr_dict())
+            attr_col_map = copy.deepcopy(cfg.get_attr_col_map())
 
     cfg.get_debug() and cfg.print("T = ", T, " alpha = ", alphas)
     return classifiers, alphas, error_rates

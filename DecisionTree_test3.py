@@ -110,6 +110,3 @@ def main():
             incorrect_ratio, incorrect_indices = assess_id3(tree, test_data, attr_col_map, attributes_normalized_test)
             output += str(1-incorrect_ratio)
             print(output)
-
-if __name__ == "__main__":
-    main()

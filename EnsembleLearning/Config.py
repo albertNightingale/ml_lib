@@ -36,12 +36,20 @@ class ada_config:
         return self.unmodified_S
 
 class bagging_config: 
-    def __init__(self, unmodified_S, bagging_debug=False, iterations = None, attr_col_map=None, attr_dict=None):
+    def __init__(self, unmodified_S, bagging_debug=False, random_forest=False, attribute_sampling_size=None, iterations = None, attr_col_map=None, attr_dict=None):
         self.bagging_debug = bagging_debug
         self.iterations = iterations
         self.attr_col_map = attr_col_map
         self.unmodified_S = unmodified_S
         self.attr_dict = attr_dict
+        self.random_forest = random_forest
+        self.attribute_sampling_size = attribute_sampling_size
+
+    def get_random_forest(self):
+        return self.random_forest
+    
+    def get_attribute_sampling_size(self):
+        return self.attribute_sampling_size
 
     def get_normal_weight(self):
         return 1/len(self.unmodified_S)
