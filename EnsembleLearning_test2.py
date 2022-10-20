@@ -87,7 +87,7 @@ def main():
     _attributes_normalized_test, test_data = normalizeData(copy.deepcopy(unprocessed_test_data), attr_col_map, attributes)
 
 
-    T_value_to_test = np.arange(1, 500, 5)
+    T_value_to_test = np.concatenate((np.arange(1, 20), np.arange(50, 501, 50)))
 
     column_name = "T, train_accuracy, test_accuracy"
     print(column_name)
@@ -100,3 +100,4 @@ def main():
         output += str(1-incorrect_ratio) + "\n"
         output += str(error_rates)
         print(output)
+    
