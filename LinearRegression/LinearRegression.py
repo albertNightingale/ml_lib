@@ -14,12 +14,19 @@ def gradient_descent(training_data, learning_rate, initial_w=None, type="batch")
     return w
 
 
-def _batch_gradient_descent(training_data, learning_rate, w):
+def _batch_gradient_descent(training_data, r, w):
     X = training_data[:, :-1]
     Y = training_data[:, -1]
-    J = math.inf
-    
-    while J > 0.01:
-        w = w - learning_rate * lms_batch_gradient(X, Y, w)
+    diff = 1
+    iteration = 0
+
+    while np.linalg.norm(diff) > 0.000001:
+        # update weight
+        diff = r * lms_batch_gradient(X, Y, w)
+        w = w - diff
+        # update learning rate
+        r = r * 0.5
+        print("iteration: {}, r: {}, w: {}, cost: {}".format(iteration, r, w, lms_cost(X, Y, w)))
+        iteration += 1
     return w
 

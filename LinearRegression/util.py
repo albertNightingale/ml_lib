@@ -13,4 +13,6 @@ def lms_batch_gradient(X, Y, w):
     sum = np.zeros(shape[1])
     for j in range(shape[1]):
         for i in range(shape[0]):
-            sum[j] += - (Y[i] - w.T * X[i]) * X[i][j]
+            prod = np.dot(w, X[i])
+            sum[j] += - (Y[i] - prod) * X[i][j]
+    return sum
