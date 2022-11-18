@@ -8,8 +8,8 @@ class svm:
         self.epoch = epoch
         
         self.lr_scheduler = lr_scheduler
-        self.gamma_0 = 0.005
-        self.a = 1 if self.lr_scheduler == "a" else None
+        self.gamma_0 = 0.2
+        self.a = 0.3 if self.lr_scheduler == "a" else None
 
         # settings
         self.debug = debug
@@ -34,16 +34,22 @@ class svm:
         lr_schedule = self.a_schedule_gamma if self.lr_scheduler == "a" else self.b_schedule_gamma
 
         for T in range(self.epoch):
-            index = np.random.choice(np.arange(X.shape[0]), 1)
-            x_i = np.append(X[index], 1) # augmented x_i
-            y_i = Y[index]
-            if y_i * w.T.dot(x_i) <= 1: # expected vs actual is not correct
-                gradient = gamma_t * (self.w_0 - self.N * self.C * y_i * x_i)
-                w -= gradient
-            else:
-                self.w_0 = (1 - gamma_t) * self.w_0
-            # update gamma_t
-            gamma_t = lr_schedule(T) 
+            merged_data = np.column_stack((X, Y))
+            np.random.shuffle(merged_data)
+            X, Y = merged_data[:, :-1], merged_data[:, -1]
+
+            for x_i, y_i in zip(X, Y):
+                # randomly select ONE data point
+                # index = np.random.choice(np.arange(X.shape[0]), 1)
+                # y_i = Y[index] 
+                x_i = np.append(x_i, 1) # augmented x_i
+                if y_i * w.T.dot(x_i) <= 1: # expected vs actual is not correct
+                    gradient = gamma_t * (self.w_0 - self.N * self.C * y_i * x_i)
+                    w -= gradient
+                else:
+                    self.w_0 = (1 - gamma_t) * self.w_0
+                # update gamma_t
+                gamma_t = lr_schedule(T) 
 
         self.weight_final = w
         return w
