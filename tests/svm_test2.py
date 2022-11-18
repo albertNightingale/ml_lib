@@ -20,7 +20,7 @@ def main():
     C_values = [100/873, 500/873, 700/873]
     
     # create svm object
-    primal_cfr = dual_svm(C_values[1], debug=True)
+    primal_cfr = dual_svm(C_values[2], debug=True)
     # train svm
     w_f, b_f = primal_cfr.fit(X, Y)
     print("Final weight vector: {}".format(w_f))
