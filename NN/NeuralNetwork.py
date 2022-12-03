@@ -4,13 +4,13 @@ import numpy as np
 class Node: 
   def __init__(self, node_name, init_val, layer_number = -1):
     self.node_name = node_name
-    self.val = init_val
     self.layer_number = layer_number
+    self.val = init_val
+    self.loss_gradient = 0
 
 class NeuralNetwork:
-  def __init__(self, input_nodes: list[Node], inner_nodes: list[Node], output_node: Node, point_to, num_layers, num_nodes, num_input_nodes, method="sigmoid", epochs=100):
-    self.input_nodes = input_nodes
-    self.inner_nodes = inner_nodes
+  def __init__(self, node_map: dict[str, Node], output_node: Node, point_to: np.ndarray, num_layers, num_nodes, num_input_nodes, method="sigmoid", epochs=100):
+    self.input_nodes = node_map
     self.output_node = output_node
     self.weights = point_to
     
@@ -32,30 +32,9 @@ class NeuralNetwork:
   def _sigmoid(self, x):
     return 1 / (1 + np.exp(-x))
 
-  def _sigmoid_derivative(self, _weights, _xs):
-    sigmoid = self._sigmoid(np.dot(_xs, _weights))
+  def _sigmoid_derivative(self, val):
+    sigmoid = self._sigmoid(val)
     return sigmoid * (1 - sigmoid)
-
-  ###################
-  # path finding algorithm
-  def _find_paths(self, data, start, end):
-    return self._dfs(data, end, [start], [])
-  # given data, ending point, and path with start point, find all the paths. 
-  def _dfs(self, data, end_point, path, paths):
-      start_point = path[-1]
-      if start_point == end_point:
-          paths += [path]
-          return paths
-      
-      if start_point not in data[:,0]: # start has no children        
-          return paths
-      
-      start_point_children = data[data[:,0]==start_point]
-      for child in start_point_children:
-          temp_path = path + [child[1]]
-          paths = self._dfs(data, end_point, temp_path, paths)
-      
-      return paths
 
   # forward pass
   def forward_pass(self, x):
@@ -79,76 +58,63 @@ class NeuralNetwork:
             _inner_node.val += _node.val * w
             q.append(_inner_node)
 
-  def compute_node(self, node_name):
-    related_weights = []
-    related_node_values = []
-
-    _filtered_weights = self.weights[self.weights[:,0] == node_name]
-    for weight in _filtered_weights:
-      related_weights.append(weight[2])
-      
-      for _node in self.inner_nodes.tolist() + self.input_nodes.tolist():
-        if _node.node_name == target_weight[1]:
-          target_weight_node = _node
-          break
-
-    return related_weights
+  # compute the value of node_name by linear combination the values of the children
+  def _compute_node(self, node_name):
+    _matching_weights = self.weights[self.weights[:,0] == node_name] 
+    children_val: np.ndarray = np.array([self.input_nodes[child_name].val for child_name in _matching_weights[:,1]])
+    weights: np.ndarray = _matching_weights[:,2].astype(float)
+  
+    return np.dot(children_val, weights)
     
   # gradient computation algorithm
   # assume the graph is already initialized using the forward pass with x
-  def _compute_gradient(self, target_weight: list[str], y_star):
-    grad_loss_to_weight = 0
+  def _compute_gradient(self, y_node: Node, y_star):
+    # initialize an empty array of weights for gradient of each weight
+    _gradients = np.zeros(self.weights.shape[0])
 
-    target_weight_node:Node = None
-    # find the target weight node object
-    for _node in self.inner_nodes.tolist() + self.input_nodes.tolist():
-      if _node.node_name == target_weight[1]:
-        target_weight_node = _node
-        break
-
-    # gradient of target to weight is the target's child
-    # target = sigma(target_child_0 * weight_0 + target_child_1 * weight_1 + target_child_2 * weight_2)
-    # gradient(target)/gradient(weight_0) = (1-sigma)(sigma)target_child_0
-    grad_target_to_weight = target_weight_node.val # target_weight[1]'s value
-
-    target = target_weight[0]
-    paths = self._find_paths(self.weights, self.output_node.node_name, target)
-    print("found {} paths...".format(len(paths)))
+    # compute the gradient L / gradient y
+    y_node.loss_gradient = y_node.val - y_star
+    y_node_idx = self.weights.argwhere(self.weights[:,0] == y_node.node_name)
+    # iterate all links and compute the gradient of each weight
+    for i in y_node_idx:
+      _child_name = self.weights[i,1]
+      _child_val = self.input_nodes[_child_name].val
+      _gradients[i] = y_node.loss_gradient * _child_val
     
-    for path in paths:
-      g = 0 # use chain rule for the gradient
-      parent_node = "L" # the starting parent node is the loss function itself
-      for _node in path:
-        if _node == self.output_node.node_name:
-          y = self.output_node.val
-          g = y - y_star
-        elif _node == target:
-          g *= float(grad_target_to_weight)
-        else: # gradient(parent)/gradient(n) in a layer is the weights of the linear function of their parents
-          parent_filter = self.weights[self.weights[:,0] == parent_node]
-          n_filter = parent_filter[parent_filter[:,1] == _node]
-          g *= np.sum(n_filter[:,2].astype(float))
-        parent_node = _node
-      
-      grad_loss_to_weight += g
-      # print(grad_loss_to_weight)
-    return grad_loss_to_weight
+    
+    # compute the gradient L / gradient x
+    for i in range(self.num_layers - 2, -1, -1):
+      for j in range(self.num_nodes[i]):
+        _node_name = f"layer_{i}_node_{j}"
+        _node = self.input_nodes[_node_name]
+        _node_idx = self.weights.argwhere(self.weights[:,0] == _node_name)
+        _node.loss_gradient = 0
+        for k in _node_idx:
+          _child_name = self.weights[k,1]
+          _child_val = self.input_nodes[_child_name].val
+          _child_loss_gradient = self.input_nodes[_child_name].loss_gradient
+          _gradients[k] = _child_loss_gradient * _child_val
+          _node.loss_gradient += _child_loss_gradient * self.weights[k,2]
+        
+        _node.loss_gradient *= self._sigmoid_derivative(_node.val)    
+
+    return 
 
 
-  def fit(self, X, Y, initialize_weights=True):
-    if initialize_weights:
-      self._initialize_weights(0.1)
+  # def fit(self, X, Y, initialize_weights=True):
+  #   if initialize_weights:
+  #     self._initialize_weights(0.1)
 
-    for T in self.epoch:
-      for i in range(len(X)):
-        x = X[i]
-        # forward pass to compute the value of all nodes for x = X[i]
-        self.forward_pass(x)
-        # for each weight, compute the gradient and update the weight
-        for node_weight_pair in self.weights:      
-          # compute the gradient of the loss function on weights
-          gradient = self._compute_gradient(node_weight_pair, Y[i])
-          # update weights
-          node_weight_pair[2] = node_weight_pair[2] - self.learning_rate_schedule(T) * gradient
-    return self.weights
+  #   for T in self.epoch:
+  #     for i in range(len(X)):
+  #       x = X[i]
+  #       # forward pass to compute the value of all nodes for x = X[i]
+  #       self.forward_pass(x)
+  #       # for each weight, compute the gradient and update the weight
+  #       for node_weight_pair in self.weights:      
+  #         # compute the gradient of the loss function on weights
+  #         gradient = self._compute_gradient(node_weight_pair, Y[i])
+  #         # update weights
+  #         node_weight_pair[2] = node_weight_pair[2] - self.learning_rate_schedule(T) * gradient
+  #   return self.weights
 
