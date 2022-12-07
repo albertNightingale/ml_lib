@@ -5,44 +5,97 @@ import math
 import numpy as np
 
 class Node: 
-  def __init__(self, node_name, init_val, layer_number = -1):
+  def __init__(self, node_name, layer_number = -1):
     self.node_name = node_name
     self.layer_number = layer_number
-    self.val = init_val
+
+    self.val = 0
     self.loss_gradient = 0
 
   def __str__(self):
     return str(self.node_name)
 
-
 class NeuralNetwork:
-  def __init__(self, node_map: dict[str, Node], input_names: list[str], output_name: str, weights: np.ndarray, num_layers, num_nodes, num_input_nodes, method="sigmoid", epochs=100):
-    self.nodes = node_map
-    self.input_names = input_names
-    self.output_name = output_name
-    self.weights = weights
-    
+  def __init__(self, num_layers, num_nodes_per_layer, num_input_nodes, method="sigmoid", epochs=100):
     self.num_layers = num_layers # number of layers
-    self.num_nodes = num_nodes # total number of nodes
+    self.num_nodes_per_layer = num_nodes_per_layer # total number of nodes
     self.num_input_nodes = num_input_nodes # number of input nodes
-    
+      
+    # initialize_nodes
+    self.input_names = list()
+    self.output_name = ""
+    self.node_name_by_layer = dict[int, list]()
+    self.nodes: dict[str, Node] = self._initialize_nodes()
+    self.weights: np.ndarray = self._initialize_weights()
+
     self.method = method
     self.epochs = epochs
     self.gamma_0 = 0.1
 
-  def _initialize_weights(self, weight):
-    for node_weight_pair in self.weights:
-      node_weight_pair[2] = weight
+  def _initialize_nodes(self): 
+    nodes: dict[str, Node] = dict()
+
+    for layer in range(self.num_layers + 1):
+      self.node_name_by_layer[layer] = list()
+
+    nodes = {"y_1": Node("y_1", self.num_layers)}
+    self.node_name_by_layer[self.num_layers].append("y_1")
+    self.output_name = "y_1"
+
+    for i in range(self.num_input_nodes):
+      input_node_name = "x_{}".format(i)
+      self.input_names.append(input_node_name)
+      nodes[input_node_name] = Node(input_node_name, 0)
+      self.node_name_by_layer[0].append(input_node_name)
+
+    for layer in range(1, self.num_layers, 1):
+      for i in range(self.num_nodes_per_layer):
+        node_name = "z_{}_{}".format(i, layer)
+        nodes[node_name] = Node(node_name, layer)
+        self.node_name_by_layer[layer].append(node_name)
+    return nodes
+
+  def _initialize_weights(self):
+    weights = list()
+    for layer in range(self.num_layers):
+      for node_name in self.node_name_by_layer[layer]:
+        for parent_name in self.node_name_by_layer[layer + 1]:
+          weights.append(np.array([parent_name, node_name, 0]))
+    return np.array(weights)
+    
+  def set_custom_weights(self, weights):
+    self.weights = weights
 
   def learning_rate_schedule(self, T):
     return self.gamma_0 / (1 + T)
 
+  # sigmoid function
   def _sigmoid(self, x):
     return 1 / (1 + math.exp(-x))
 
+  # sigmoid derivative
   def _sigmoid_derivative(self, val):
     sigmoid = self._sigmoid(val)
     return sigmoid * (1 - sigmoid)
+
+  # linear combination
+  def _linear_combination(self, node_name: str) -> Union[float, bool]:
+    children_weights = self.weights[self.weights[:,0] == node_name] # get its childrens
+    print("childrens of {}: ".format(node_name))
+    print(children_weights)
+    children_val: np.ndarray = np.array([self.nodes[child_name].val for child_name in children_weights[:,1]]) # map children values
+    weights: np.ndarray = children_weights[:,2].astype(float) # map children weights
+    print("children_val: ", children_val)
+    print("weights: ", weights)
+
+    # if there is no children, return false
+    if children_val.shape[0] == 0:
+      return False
+
+    _dot = np.dot(children_val, weights)
+    print("resulting dot: {}".format(_dot))
+    print()
+    return _dot
 
   # forward pass
   def forward_pass(self, x):    
@@ -71,24 +124,6 @@ class NeuralNetwork:
 
     sigma_lc = self._sigmoid(lc)
     return sigma_lc
-
-  def _linear_combination(self, node_name: str) -> Union[float, bool]:
-    children_weights = self.weights[self.weights[:,0] == node_name] # get its childrens
-    print("childrens of {}: ".format(node_name))
-    print(children_weights)
-    children_val: np.ndarray = np.array([self.nodes[child_name].val for child_name in children_weights[:,1]]) # map children values
-    weights: np.ndarray = children_weights[:,2].astype(float) # map children weights
-    print("children_val: ", children_val)
-    print("weights: ", weights)
-
-    # if there is no children, return false
-    if children_val.shape[0] == 0:
-      return False
-
-    _dot = np.dot(children_val, weights)
-    print("resulting dot: {}".format(_dot))
-    print()
-    return _dot
   
   # compute the gradient of the weight under node with node_name
   def _gradient_weight(self, node_name, _gradients, apply_activation: bool):
