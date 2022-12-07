@@ -1,3 +1,4 @@
+
 import numpy as np
 
 from NN.NeuralNetwork import NeuralNetwork
@@ -34,38 +35,36 @@ w = np.array([
   ["z_2_1", "x_2", 3]
 ])
 
+def _read(filename):
+    result = np.genfromtxt(filename, delimiter=',')
+    _r, _c = result.shape
+    np.random.shuffle(result)
+    return result[:, :_c-1], result[:, _c-1]
+
+
+def _process_boolean_labels(Y):
+    return np.where(Y == 0, -1, Y)
+
 def main():
   # format np printing
   float_formatter = "{:.4f}".format
   np.set_printoptions(formatter={'float_kind':float_formatter})
   
-  X = np.array([1, 1, 1])
-  Y = np.array([1])
+  # get and process data and labels
+  X, Y = _read('data/hw5/bank-note/train.csv')
+  Y = _process_boolean_labels(Y)
+
   # create neural network
-  nn = NeuralNetwork(3, 3, 3)
-  nn.set_custom_weights(w)
-  nn.forward_pass(X)
-  
-  print("Node value after forward pass: ")
-  for _node_name in nn.nodes:
-    _node = nn.nodes[_node_name]
-    print("Node {} value is {:4f}".format(_node.node_name, _node.val))
+  nn = NeuralNetwork(3, 50, 3)
+  nn.fit(X, Y)
 
-  print()
+  print("Final Weights: ")
+  for w in nn.weights:
+    print("{} point to {} ----- {}".format(w[1], w[0], w[2]))
 
-  gradient_weights = nn.compute_gradient(Y[0])
-  
-  print()
-  print("SUMMARY: gradient_loss of each node:")
-  for _node_name in nn.nodes:
-    _node = nn.nodes[_node_name]
-    print("Node {} gloss is {:4f}".format(_node.node_name, _node.loss_gradient))
-  print()
-
-  print("Gradient over Weights")
-  for i in range(nn.weights.shape[0]):
-    weight = nn.weights[i]
-    grad: float = gradient_weights[i]
-    print("gradient weight pointing from {} to {} is {} ----- : {:4f}".format(weight[1], weight[0], weight[2], grad))
-
+  X_test, Y_test = _read('data/hw5/bank-note/test.csv')
+  Y_test = _process_boolean_labels(Y_test)
+  Y_hat_test = nn.predict(X_test)
+  accuracy_test = np.sum(Y_hat_test == Y_test) / Y_test.shape[0]
+  print("accuracy on testing data: {}".format(accuracy_test))
 

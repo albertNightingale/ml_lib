@@ -1,6 +1,7 @@
 
 from typing import Union
 
+import time
 import math
 import numpy as np
 
@@ -16,7 +17,7 @@ class Node:
     return str(self.node_name)
 
 class NeuralNetwork:
-  def __init__(self, num_layers, num_nodes_per_layer, num_input_nodes, method="sigmoid", epochs=100):
+  def __init__(self, num_layers, num_nodes_per_layer, num_input_nodes, debug=False, method="sigmoid", epoch=100):
     self.num_layers = num_layers # number of layers
     self.num_nodes_per_layer = num_nodes_per_layer # total number of nodes
     self.num_input_nodes = num_input_nodes # number of input nodes
@@ -28,8 +29,9 @@ class NeuralNetwork:
     self.nodes: dict[str, Node] = self._initialize_nodes()
     self.weights: np.ndarray = self._initialize_weights()
 
+    self.debug = debug
     self.method = method
-    self.epochs = epochs
+    self.epoch = epoch
     self.gamma_0 = 0.1
 
   def _initialize_nodes(self): 
@@ -56,11 +58,12 @@ class NeuralNetwork:
     return nodes
 
   def _initialize_weights(self):
+    w = 0
     weights = list()
     for layer in range(self.num_layers):
       for node_name in self.node_name_by_layer[layer]:
         for parent_name in self.node_name_by_layer[layer + 1]:
-          weights.append(np.array([parent_name, node_name, 0]))
+          weights.append(np.array([parent_name, node_name, w], dtype=object))
     return np.array(weights)
     
   def set_custom_weights(self, weights):
@@ -81,20 +84,17 @@ class NeuralNetwork:
   # linear combination
   def _linear_combination(self, node_name: str) -> Union[float, bool]:
     children_weights = self.weights[self.weights[:,0] == node_name] # get its childrens
-    print("childrens of {}: ".format(node_name))
-    print(children_weights)
+    self.debug and print("childrens of {}: \n{}".format(node_name, children_weights))
     children_val: np.ndarray = np.array([self.nodes[child_name].val for child_name in children_weights[:,1]]) # map children values
     weights: np.ndarray = children_weights[:,2].astype(float) # map children weights
-    print("children_val: ", children_val)
-    print("weights: ", weights)
+    self.debug and print("children_val: ", children_val, ", weights: ", weights)
 
     # if there is no children, return false
     if children_val.shape[0] == 0:
       return False
 
     _dot = np.dot(children_val, weights)
-    print("resulting dot: {}".format(_dot))
-    print()
+    self.debug and print("resulting dot: {}\n".format(_dot))
     return _dot
 
   # forward pass
@@ -105,15 +105,16 @@ class NeuralNetwork:
 
     # inner nodes
     for layer_number in range(1, self.num_layers, 1):
-      print("forward_pass: layer_number: ", layer_number)
+      self.debug and print("forward_pass: layer_number: ", layer_number)
       for _name in self.nodes: 
         if self.nodes[_name].layer_number != layer_number: # not the same layer number
           continue
         self.nodes[_name].val = self._compute_node(_name)
     
     # output node
-    output_node = self.nodes[self.output_name]
-    output_node.val = self._linear_combination(self.output_name)
+    val = self._linear_combination(self.output_name)
+    self.nodes[self.output_name].val = val
+    return val
 
   # compute the value of node_name by linear combination the values of the children
   def _compute_node(self, node_name: str) -> float:
@@ -133,7 +134,7 @@ class NeuralNetwork:
     activation_derivative = 0
     if apply_activation:
       activation_derivative = self._sigmoid_derivative(self._linear_combination(node_name))
-      print("activation derivative of {} is {}".format(node_name, activation_derivative))
+      self.debug and print("activation derivative of {} is {}".format(node_name, activation_derivative))
 
     for i in _filtered_indices:
       _child_name = self.weights[i][1]
@@ -157,13 +158,11 @@ class NeuralNetwork:
     
     # compute the gradient L / gradient x
     for layer_number in range(self.num_layers - 1, 0, -1):
-      print("_compute_gradient: layer_number: ", layer_number)
-      for _name in self.nodes:
+      self.debug and print("_compute_gradient: layer_number: ", layer_number)
+      for _name in self.node_name_by_layer[layer_number]:
         _node = self.nodes[_name] 
-        if _node.layer_number != layer_number: # not the same layer number
-          continue
         
-        print("processing node: ", _name)
+        self.debug and print("processing node: ", _name)
         # compute the gradient of the node
         parents_weights = self.weights[self.weights[:,1] == _name]
         
@@ -171,7 +170,7 @@ class NeuralNetwork:
         _parent_weights = parents_weights[:, 2].astype(float)
 
         _node.loss_gradient = np.dot(_parent_loss_grads, _parent_weights)
-        print("dot product parent_loss_grad {} with _parent_weights {} result in node gloss: {}\n".format(_parent_loss_grads, _parent_weights, _node.loss_gradient))
+        self.debug and print("dot product parent_loss_grad {} with _parent_weights {} result in node gloss: {}\n".format(_parent_loss_grads, _parent_weights, _node.loss_gradient))
 
         # compute the gradient of the weight
         self._gradient_weight(_name, _gradients, True)
@@ -179,20 +178,26 @@ class NeuralNetwork:
     return _gradients
 
 
-  # def fit(self, X, Y, initialize_weights=True):
-  #   if initialize_weights:
-  #     self._initialize_weights(0.1)
-
-  #   for T in self.epoch:
-  #     for i in range(len(X)):
-  #       x = X[i]
-  #       # forward pass to compute the value of all nodes for x = X[i]
-  #       self.forward_pass(x)
-  #       # for each weight, compute the gradient and update the weight
-  #       for node_weight_pair in self.weights:      
-  #         # compute the gradient of the loss function on weights
-  #         gradient = self._compute_gradient(node_weight_pair, Y[i])
-  #         # update weights
-  #         node_weight_pair[2] = node_weight_pair[2] - self.learning_rate_schedule(T) * gradient
-  #   return self.weights
-
+  def fit(self, X: np.ndarray, Y: np.ndarray):
+    for T in range(self.epoch):
+      start_time = time.time()
+      print("Iteration :", T)
+      merged_data = np.column_stack((X, Y))
+      np.random.shuffle(merged_data)
+      X, Y = merged_data[:, :-1], merged_data[:, -1]
+      for i in range(len(X)):
+        x = X[i]
+        # forward pass to compute the value of all nodes for x = X[i]
+        self.forward_pass(x)
+        gradient_weights = self.compute_gradient(Y[i])
+        for j in range(len(gradient_weights)):
+          g = float(self.weights[j][2]) - self.learning_rate_schedule(T) * gradient_weights[j]
+          self.weights[j][2] = g
+      print("end T {} took {} seconds ---".format(T, time.time() - start_time))
+        
+  def predict(self, X: np.ndarray):
+    Y_hat = np.zeros(X.shape[0])
+    for i, _x in enumerate(X):
+      Y_hat[i] = self.forward_pass(_x)
+    
+    return Y_hat
