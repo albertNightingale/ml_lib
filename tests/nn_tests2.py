@@ -54,17 +54,32 @@ def main():
   X, Y = _read('data/hw5/bank-note/train.csv')
   Y = _process_boolean_labels(Y)
 
-  # create neural network
-  nn = NeuralNetwork(3, 50, 3)
-  nn.fit(X, Y)
-
-  print("Final Weights: ")
-  for w in nn.weights:
-    print("{} point to {} ----- {}".format(w[1], w[0], w[2]))
 
   X_test, Y_test = _read('data/hw5/bank-note/test.csv')
   Y_test = _process_boolean_labels(Y_test)
-  Y_hat_test = nn.predict(X_test)
-  accuracy_test = np.sum(Y_hat_test == Y_test) / Y_test.shape[0]
-  print("accuracy on testing data: {}".format(accuracy_test))
 
+  widths = [5, 10, 25, 50, 100]
+
+  for width in widths:
+    print("start with width: ", width)
+    # create neural network
+    nn = NeuralNetwork(3, width, 3)
+    nn.fit(X, Y)
+
+    # print("Final Weights: ")
+    # for w in nn.weights:
+    #   print("{} point to {} ----- {}".format(w[1], w[0], w[2]))
+
+    Y_hat_test = nn.predict(X_test)
+
+    # for i in range(Y_test.shape[0]):
+    #   print("Y_hat_test: {}, Y_test: {}".format(Y_hat_test[i], Y_test[i]))
+
+    # compute accuracy by comparing Y_hat_test rounded to the nearest integer and Y_test 
+    accuracy_test = np.sum(np.round(Y_hat_test) == Y_test) / Y_test.shape[0]
+    print("accuracy on testing data: {}".format(accuracy_test))
+
+    Y_train = nn.predict(X)
+    # compute accuracy by comparing Y_hat_test rounded to the nearest integer and Y_test 
+    accuracy_train = np.sum(np.round(Y_train) == Y) / Y.shape[0]
+    print("accuracy on training data: {}".format(accuracy_train))

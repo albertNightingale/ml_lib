@@ -3,6 +3,7 @@ from typing import Union
 
 import time
 import math
+import random
 import numpy as np
 
 class Node: 
@@ -58,23 +59,29 @@ class NeuralNetwork:
     return nodes
 
   def _initialize_weights(self):
-    w = 0
     weights = list()
     for layer in range(self.num_layers):
       for node_name in self.node_name_by_layer[layer]:
         for parent_name in self.node_name_by_layer[layer + 1]:
-          weights.append(np.array([parent_name, node_name, w], dtype=object))
+          weights.append(np.array([parent_name, node_name, random.random()], dtype=object))
     return np.array(weights)
     
   def set_custom_weights(self, weights):
     self.weights = weights
 
   def learning_rate_schedule(self, T):
-    return self.gamma_0 / (1 + T)
+    d = 7
+    return self.gamma_0 / (1 + self.gamma_0 / d * T)
 
   # sigmoid function
   def _sigmoid(self, x):
-    return 1 / (1 + math.exp(-x))
+    try:
+      return 1 / (1 + math.exp(-x))
+    except OverflowError:
+      if x < 0:
+        return 0
+      else:
+        return 1
 
   # sigmoid derivative
   def _sigmoid_derivative(self, val):
@@ -180,8 +187,9 @@ class NeuralNetwork:
 
   def fit(self, X: np.ndarray, Y: np.ndarray):
     for T in range(self.epoch):
-      start_time = time.time()
-      print("Iteration :", T)
+      # start_time = time.time()
+      # print("Iteration :", T)
+
       merged_data = np.column_stack((X, Y))
       np.random.shuffle(merged_data)
       X, Y = merged_data[:, :-1], merged_data[:, -1]
@@ -191,13 +199,13 @@ class NeuralNetwork:
         self.forward_pass(x)
         gradient_weights = self.compute_gradient(Y[i])
         for j in range(len(gradient_weights)):
-          g = float(self.weights[j][2]) - self.learning_rate_schedule(T) * gradient_weights[j]
-          self.weights[j][2] = g
-      print("end T {} took {} seconds ---".format(T, time.time() - start_time))
+          self.weights[j][2] -= self.learning_rate_schedule(T) * gradient_weights[j]
+
+      # print("end T {} took {} seconds ---".format(T, time.time() - start_time))
         
   def predict(self, X: np.ndarray):
     Y_hat = np.zeros(X.shape[0])
     for i, _x in enumerate(X):
-      Y_hat[i] = self.forward_pass(_x)
+      Y_hat[i] = self.forward_pass(_x) # self._sigmoid(self.forward_pass(_x))
     
     return Y_hat
